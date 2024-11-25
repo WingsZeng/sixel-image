@@ -5,18 +5,22 @@ use crate::{SixelColor, Pixel};
 pub struct SixelSerializer <'a>{
     color_registers: &'a BTreeMap<u16, SixelColor>,
     pixels: &'a Vec<Vec<Pixel>>,
+    pan: Option<usize>,
+    pad: Option<usize>,
 }
 
 impl <'a>SixelSerializer <'a>{
-    pub fn new(color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>) -> Self {
+    pub fn new(color_registers: &'a BTreeMap<u16, SixelColor>, pixels: &'a Vec<Vec<Pixel>>, pan: Option<usize>, pad: Option<usize>) -> Self {
         SixelSerializer {
             color_registers,
-            pixels
+            pixels,
+            pan,
+            pad
         }
     }
     pub fn serialize(&self) -> String {
         let serialized_image = String::new();
-        let serialized_image = self.serialize_empty_dcs(serialized_image);
+        let serialized_image = self.serialize_dcs(serialized_image, None, None);
         let serialized_image = self.serialize_color_registers(serialized_image);
         let serialized_image = self.serialize_pixels(serialized_image, None, None, None, None);
         let serialized_image = self.serialize_end_event(serialized_image);
@@ -24,14 +28,17 @@ impl <'a>SixelSerializer <'a>{
     }
     pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
         let serialized_image = String::new();
-        let serialized_image = self.serialize_empty_dcs(serialized_image);
+        let serialized_image = self.serialize_dcs(serialized_image, Some(width), Some(height));
         let serialized_image = self.serialize_color_registers(serialized_image);
         let serialized_image = self.serialize_pixels(serialized_image, Some(start_x_index), Some(start_y_index), Some(width), Some(height));
         let serialized_image = self.serialize_end_event(serialized_image);
         serialized_image
     }
-    fn serialize_empty_dcs(&self, mut append_to: String) -> String {
-        append_to.push_str("\u{1b}Pq");
+    fn serialize_dcs(&self, mut append_to: String, width: Option<usize>, height: Option<usize>) -> String {
+        append_to.push_str("\u{1b}P0;1;0q");
+        let width = width.unwrap_or_else(|| self.pixels.first().map(|first_line| first_line.len()).unwrap_or(0));
+        let height = height.unwrap_or_else(|| self.pixels.len());
+        append_to.push_str(&format!("\"{};{};{};{}", self.pan.unwrap_or(1), self.pad.unwrap_or(1), width, height));
         append_to
     }
     fn serialize_color_registers(&self, mut append_to: String) -> String {

@@ -15,6 +15,8 @@ pub struct SixelDeserializer {
     stop_parsing: bool,
     got_dcs: bool,
     transparent_background: bool,
+    pan: Option<usize>,
+    pad: Option<usize>,
 }
 
 impl SixelDeserializer {
@@ -29,6 +31,8 @@ impl SixelDeserializer {
             stop_parsing: false,
             got_dcs: false,
             transparent_background: false,
+            pan: None,
+            pad: None,
         }
     }
     /// Provide a `max_height` value in pixels, all pixels beyond this max height will not be
@@ -47,6 +51,8 @@ impl SixelDeserializer {
         Ok(SixelImage {
             pixels,
             color_registers,
+            pan: self.pan,
+            pad: self.pad
         })
     }
     /// Handle a [`SixelEvent`], changing the internal state to match
@@ -71,8 +77,9 @@ impl SixelDeserializer {
                     }
                 }
             }
-            SixelEvent::RasterAttribute { pan: _, pad: _, ph, pv } => {
-                // we ignore pan/pad because (reportedly) no-one uses them
+            SixelEvent::RasterAttribute { pan, pad, ph, pv } => {
+                self.pan = Some(pan);
+                self.pad = Some(pad);
                 if !self.transparent_background {
                     if let Some(pv) = pv {
                         self.pad_lines_vertically(pv);

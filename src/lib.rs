@@ -11,7 +11,7 @@
 //! use std::io::BufReader;
 //! use std::fs::File;
 //! use sixel_image::SixelImage;
-//! 
+//!
 //! fn main() {
 //!     let f = File::open("/home/aram/Downloads/lady-of-shalott.six").unwrap();
 //!     let mut reader = BufReader::new(f);
@@ -37,6 +37,8 @@ use sixel_tokenizer::{ColorCoordinateSystem, Parser};
 pub struct SixelImage {
     color_registers: BTreeMap<u16, SixelColor>,
     pixels: Vec<Vec<Pixel>>,
+    pan: Option<usize>,
+    pad: Option<usize>,
 }
 
 impl SixelImage {
@@ -62,14 +64,14 @@ impl SixelImage {
     }
     /// Serializes the whole image, returning a stringified sixel representation of it
     pub fn serialize(&self) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
+        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels, self.pan, self.pad);
         let serialized_image = sixel_serializer.serialize();
         serialized_image
     }
     /// Serializes a specific rectangle of this image without manipulating the image itself, x/y
     /// coordinates as well as width height are in pixels
     pub fn serialize_range(&self, start_x_index: usize, start_y_index: usize, width: usize, height: usize) -> String {
-        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels);
+        let sixel_serializer = SixelSerializer::new(&self.color_registers, &self.pixels, self.pan, self.pad);
         let serialized_image = sixel_serializer.serialize_range(start_x_index, start_y_index, width, height);
         serialized_image
     }
@@ -88,7 +90,7 @@ impl SixelImage {
 #[derive(Clone, Copy)]
 pub struct Pixel {
     on: bool,
-    color: u16, 
+    color: u16,
 }
 
 impl fmt::Debug for Pixel {
